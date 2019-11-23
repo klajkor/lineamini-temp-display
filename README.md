@@ -1,7 +1,7 @@
 # Linea Mini temperature display
-Retrofit temperature display for LaMarzocco Linea Mini espresso machine
-Temperature calculation based on the idea and code snippets from James Davison at Williamstown Roasters
-His GitHub repository: https://github.com/JimmyRoasts/LaMarzoccoTempSensor
+Retrofit temperature display for **LaMarzocco Linea Mini** espresso machine.
+- Temperature calculation based on the idea and code snippets from **James Davison** at Williamstown Roasters
+- His GitHub repository: https://github.com/JimmyRoasts/LaMarzoccoTempSensor
 
 Board: Arduino Pro Mini AT168P 16MHz 5V
 
