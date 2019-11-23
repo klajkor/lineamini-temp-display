@@ -6,7 +6,9 @@
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiSpi.h"
 
+/**
 #define SERIAL_DEBUG_ENABLED 1
+*/
 
 /* Declarations and initializations */
 
@@ -31,6 +33,8 @@
 
 // Current and voltage sensor class
 Adafruit_INA219 ina219_monitor;
+#define INA219_VCC_PIN 3
+#define INA219_GND_PIN 2
 
 // OLED pin definitions
 #define SCK_PIN 13  // HW SPI SCK pin, reminder only
@@ -48,6 +52,8 @@ Adafruit_INA219 ina219_monitor;
 SSD1306AsciiSpi oled;
 
 /* Global variables */
+
+static const char str_Linea_Mini[]="Linea Mini";
 
 // INA219 sensor variables
 float bus_Voltage_V;    /** Measured bus voltage in V*/
@@ -68,17 +74,16 @@ void display_Values(void);
 void calculate_Temperature(void);
 
 void setup() {
+  #ifdef SERIAL_DEBUG_ENABLED
   Serial.begin(115200);
+  Serial.println(F("Start"));
+  #endif
   ina219_Init();
   oled_Init();
-  delay(2000);
-  oled.clear();
 }
 
 
 void loop() {
-  oled.setRow(0);
-  oled.setCol(0);
   get_Voltage();
   calculate_Temperature();
   display_Values();
@@ -87,6 +92,11 @@ void loop() {
 
 void ina219_Init(void)
 {
+  pinMode(INA219_GND_PIN, OUTPUT);
+  pinMode(INA219_VCC_PIN, OUTPUT);
+  digitalWrite(INA219_GND_PIN, LOW);
+  digitalWrite(INA219_VCC_PIN, HIGH);
+  delay(100);
   ina219_monitor.begin();
   //Serial.println(F("INA219 begin done"));
   // begin calls:
@@ -100,11 +110,14 @@ void oled_Init(void) {
   oled.begin(&Adafruit128x64, CS_PIN, DC_PIN);  
   // oled.begin(&Adafruit128x64, CS_PIN, DC_PIN, RST_PIN);
   //oled.setFont(System5x7);
+  oled.clear();
   oled.setFont(fixed_bold10x15);
   oled.clear();
-  oled.println(F("Linea Mini "));
+  oled.println(str_Linea_Mini);
   oled.println(F("temperature"));
-  oled.println(F("display    "));  
+  oled.println(F("display    "));
+  delay(2000);
+  oled.clear();
 }
 
 void get_Voltage(void)
@@ -122,12 +135,15 @@ void get_Voltage(void)
 }
 
 void display_Values(void) {
+  oled.setRow(0);
+  oled.setCol(0);
   oled.print(temperature_String);
   oled.println(F(" *C"));
   oled.print(volt_String);
   oled.println(F(" mV"));
-  oled.println(F(" "));
-  oled.println(F(" Linea Mini"));
+  oled.setRow(5);
+  oled.print(F(" "));
+  oled.print(str_Linea_Mini);  
 }
 
 void calculate_Temperature(void) {
