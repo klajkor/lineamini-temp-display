@@ -29,7 +29,8 @@
 //scaling value to convert voltage
 #define VOLTAGESCALE 12.1
 //reference voltage
-#define VOLTAGEREF 4.585
+//#define VOLTAGEREF 4.585
+#define VOLTAGEREF 4.16
 
 // Current and voltage sensor class
 Adafruit_INA219 ina219_monitor;
