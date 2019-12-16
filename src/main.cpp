@@ -16,21 +16,27 @@
 // Original idea and code from Jimmy Roasts, https://github.com/JimmyRoasts/LaMarzoccoTempSensor
 
 // resistance at 25 degrees C
-#define THERMISTORNOMINAL 50000      
+#define THERMISTORNOMINAL_V1 50000  // version 1
+#define THERMISTORNOMINAL_V2 49120  // version 2 updated calculation
 // temp. for nominal resistance (almost always 25 C)
 #define TEMPERATURENOMINAL 25   
 // how many samples to take and average, more takes longer
 // but is more 'smooth'
 #define NUMSAMPLES 100
 // The beta coefficient of the thermistor (usually 3000-4000)
-#define BCOEFFICIENT 4400
+#define BCOEFFICIENT_V1 4400  // version 1
+#define BCOEFFICIENT_V2 3977  // version 2, updated calculation
 // the value of the 'other' resistor
-#define SERIESRESISTOR 6960
+#define SERIESRESISTOR_V1 6960
+#define SERIESRESISTOR_V2 6190  // version 2, measured on board
 //scaling value to convert voltage
 #define VOLTAGESCALE 12.1
 //reference voltage
 //#define VOLTAGEREF 4.585
 #define VOLTAGEREF 4.16
+
+#define LMREF  5.07 //measured from LMBoard --- GND Board
+
 
 // Current and voltage sensor class
 Adafruit_INA219 ina219_monitor;
@@ -62,9 +68,12 @@ float bus_Voltage_mV;    /** Measured bus voltage in mV*/
 char volt_String[] = "99999.9";         /** String to store measured voltage value in mV */
 
 // Calculated temperature
-float calc_Temperature = 0.0;
-char temperature_String[] = "  999.9";         /** String to store calculated temperature in Celsius degree */
+float calc_Temperature_V1 = 0.0;
+char temperature_String_V1[] = "  999.9";         /** String to store calculated temperature in Celsius degree */
 float steinhart = 0.0;
+float calc_Temperature_V2 = 0.0;
+char temperature_String_V2[] = "  999.9";
+float thermistor_Res = 0.00; // Thermistor calculated resistance
 
 /* Function definitions */
 
@@ -72,7 +81,9 @@ void oled_Init(void);
 void ina219_Init(void);
 void get_Voltage(void);
 void display_Values(void);
-void calculate_Temperature(void);
+void display_Values_V2(void);
+void calculate_Temperature_V1(void);
+void calculate_Temperature_V2(void);
 
 void setup() {
   #ifdef SERIAL_DEBUG_ENABLED
@@ -86,8 +97,10 @@ void setup() {
 
 void loop() {
   get_Voltage();
-  calculate_Temperature();
-  display_Values();
+  calculate_Temperature_V1();
+  calculate_Temperature_V2();
+  //display_Values();
+  display_Values_V2();
   delay(1000);
 }
 
@@ -138,7 +151,7 @@ void get_Voltage(void)
 void display_Values(void) {
   oled.setRow(0);
   oled.setCol(0);
-  oled.print(temperature_String);
+  oled.print(temperature_String_V1);
   oled.println(F(" *C"));
   oled.print(volt_String);
   oled.println(F(" mV"));
@@ -147,17 +160,45 @@ void display_Values(void) {
   oled.print(str_Linea_Mini);  
 }
 
-void calculate_Temperature(void) {
-  steinhart = (SERIESRESISTOR / (VOLTAGEREF - bus_Voltage_V))/ THERMISTORNOMINAL;     // (R/Ro) Steinhart resistance/Nominal resistance
+void display_Values_V2(void) {
+  oled.setRow(0);
+  oled.setCol(0);
+  oled.print(temperature_String_V1);
+  oled.println(F(" *C"));
+  oled.print(temperature_String_V2);
+  oled.println(F(" *C"));
+  oled.setRow(5);
+  oled.print(volt_String);
+  oled.println(F(" mV"));  
+}
+
+void calculate_Temperature_V1(void) {
+  steinhart = (SERIESRESISTOR_V1 / (VOLTAGEREF - bus_Voltage_V))/ THERMISTORNOMINAL_V1;     // (R/Ro) Steinhart resistance/Nominal resistance
   steinhart = log(steinhart);                  // ln(R/Ro)
-  steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
+  steinhart /= BCOEFFICIENT_V1;                   // 1/B * ln(R/Ro)
   steinhart += (1.0 / (TEMPERATURENOMINAL + 273.15)); // + (1/To)
   steinhart = 1.0 / steinhart;                 // Invert
-  calc_Temperature = (float) steinhart - 273.15;                         // convert to C
-  dtostrf(calc_Temperature, 7, 1, temperature_String);
+  calc_Temperature_V1 = (float) steinhart - 273.15;                         // convert to C
+  dtostrf(calc_Temperature_V1, 7, 1, temperature_String_V1);
   // debug display
   #ifdef SERIAL_DEBUG_ENABLED
-  Serial.print(temperature_String);
+  Serial.print(temperature_String_V1);
+  Serial.println(F(" *C"));
+  #endif
+}
+
+void calculate_Temperature_V2(void) {
+  thermistor_Res = SERIESRESISTOR_V2 * (1/((LMREF / bus_Voltage_V) -1));
+  steinhart = thermistor_Res / THERMISTORNOMINAL_V2;
+  steinhart = log(steinhart);                  // ln(R/Ro)
+  steinhart /= BCOEFFICIENT_V2;                   // 1/B * ln(R/Ro)
+  steinhart += (1.0 / (TEMPERATURENOMINAL + 273.15)); // + (1/To)
+  steinhart = 1.0 / steinhart;                 // Invert
+  calc_Temperature_V2 = (float) steinhart - 273.15;                         // convert to C
+  dtostrf(calc_Temperature_V2, 7, 1, temperature_String_V2);
+  // debug display
+  #ifdef SERIAL_DEBUG_ENABLED
+  Serial.print(temperature_String_V1);
   Serial.println(F(" *C"));
   #endif
 }
